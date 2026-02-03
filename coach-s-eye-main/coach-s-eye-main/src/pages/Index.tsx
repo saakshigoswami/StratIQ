@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { MessageSquare } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
+import chatbotImg from "@/asset/players/chatbot.png";
 import FilterSidebar from "@/components/layout/FilterSidebar";
 import PerformanceChart from "@/components/dashboard/PerformanceChart";
 import PhaseBreakdown from "@/components/dashboard/PhaseBreakdown";
@@ -85,12 +85,17 @@ const Index = () => {
       {/* Coach Assistant chatbot: floating button + panel */}
       {!chatOpen && (
         <Button
-          size="icon"
-          className="fixed bottom-6 right-6 z-40 h-12 w-12 rounded-full shadow-lg bg-primary text-primary-foreground hover:opacity-90"
+          className="fixed bottom-6 right-6 z-40 h-12 pl-3 pr-4 rounded-full shadow-lg bg-primary text-primary-foreground hover:opacity-90 flex items-center gap-2"
           onClick={() => setChatOpen(true)}
           aria-label="Open Coach Assistant"
         >
-          <MessageSquare className="w-5 h-5" />
+          <img
+            src={chatbotImg}
+            alt=""
+            className="h-8 w-8 object-contain animate-float"
+          />
+          <span className="text-lg font-semibold leading-none">?</span>
+          <span className="text-sm font-medium whitespace-nowrap">hey ask me</span>
         </Button>
       )}
       <CoachAssistant
