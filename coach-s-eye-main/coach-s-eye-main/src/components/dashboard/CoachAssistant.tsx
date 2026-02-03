@@ -1,21 +1,15 @@
 /**
  * Coach Assistant chatbot panel.
  * Answers coaching/analytics questions using only project data (POST /chat/query).
- * No generic LLM — deterministic, data-driven responses.
+ * Confidence visualization, badges, and metrics chips — dark esports theme.
  */
 import { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { chatQuery, type ChatQueryResponse } from "@/lib/api";
+import { ChatMessage as ChatMessageComponent, type ChatMessageData } from "./ChatMessage";
 
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  confidence?: number;
-  metrics_used?: string[];
-  timestamp: Date;
-}
+export type ChatMessage = ChatMessageData;
 
 const EXAMPLE_QUESTIONS = [
   "Who performed best in early game?",
@@ -24,17 +18,6 @@ const EXAMPLE_QUESTIONS = [
   "Show insights for match m1",
   "What went wrong in late game?",
 ];
-
-function formatAnswer(text: string): React.ReactNode {
-  // Simple **bold** rendering
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
-}
 
 interface CoachAssistantProps {
   game: "valorant" | "lol";
@@ -49,6 +32,8 @@ const CoachAssistant = ({ game, isOpen, onClose }: CoachAssistantProps) => {
       role: "assistant",
       content:
         "Hi, I'm the Coach Assistant. I answer questions using your match and phase data only. Try: \"Who performed best in early game?\" or \"Show insights for match m1\".",
+      confidence: 0.85,
+      metrics_used: [],
       timestamp: new Date(),
     };
     return [welcome];
@@ -115,9 +100,9 @@ const CoachAssistant = ({ game, isOpen, onClose }: CoachAssistantProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[380px] max-h-[520px] rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[380px] max-h-[520px] rounded-2xl border border-border bg-card shadow-xl overflow-hidden bg-gradient-to-b from-card to-card/95">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
         <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <MessageSquare className="w-4 h-4 text-primary" />
           Coach Assistant
@@ -128,38 +113,13 @@ const CoachAssistant = ({ game, isOpen, onClose }: CoachAssistantProps) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px] max-h-[320px]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px] max-h-[320px] scroll-smooth">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground border border-border"
-              }`}
-            >
-              <div className="whitespace-pre-wrap break-words">
-                {msg.role === "assistant" ? formatAnswer(msg.content) : msg.content}
-              </div>
-              {msg.role === "assistant" && (msg.confidence != null || (msg.metrics_used?.length ?? 0) > 0) && (
-                <div className="mt-1.5 pt-1.5 border-t border-border/50 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
-                  {msg.confidence != null && (
-                    <span>Confidence: {Math.round(msg.confidence * 100)}%</span>
-                  )}
-                  {msg.metrics_used && msg.metrics_used.length > 0 && (
-                    <span>Metrics: {msg.metrics_used.join(", ")}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <ChatMessageComponent key={msg.id} message={msg} />
         ))}
         {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-xl px-3 py-2 bg-muted border border-border text-sm text-muted-foreground">
+          <div className="flex justify-start animate-fade-in">
+            <div className="rounded-xl px-3 py-2 bg-muted/80 border border-border text-sm text-muted-foreground shadow-inner">
               Thinking…
             </div>
           </div>
