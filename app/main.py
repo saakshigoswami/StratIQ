@@ -16,6 +16,7 @@ from app.analysis.deviations import detect_deviations, phase_deviations
 from app.insights.recommendations import generate_recommendations
 from app.macro.review import generate_macro_review
 from app.grid_ingest import grid_match_to_df
+from app.chat.query import handle_chat_query
 
 
 app = FastAPI(
@@ -138,6 +139,28 @@ async def macro_review(match_id: str, game: str = "valorant"):
     if match_id not in df["match_id"].values:
         raise HTTPException(status_code=404, detail=f"Match not found: {match_id}")
     return generate_macro_review(df, match_id=match_id, game=game)
+
+
+@app.post("/chat/query")
+async def chat_query(
+    payload: dict = Body(...),
+    game: str = "valorant",
+):
+    """
+    Coach Assistant chatbot: answer coaching/analytics questions using only project data.
+    Body: { "question": string }
+    Optional query param: game=valorant|lol
+    Returns: { "answer": string, "metrics_used": string[], "confidence": number }
+    """
+    question = (payload.get("question") or "").strip()
+    if not question:
+        return {
+            "answer": "Ask a question about performance, phases, maps, or a specific match (e.g. 'Who performed best in early game?').",
+            "metrics_used": [],
+            "confidence": 0.0,
+        }
+    df = get_df(game)
+    return handle_chat_query(question, game=game, df=df)
 
 
 @app.post("/ingest/grid_match")

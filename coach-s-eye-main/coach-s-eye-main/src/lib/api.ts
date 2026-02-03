@@ -106,3 +106,26 @@ export async function fetchMacroReview(
   return res.json();
 }
 
+/** Coach Assistant chatbot: data-driven Q&A using project analytics only */
+export interface ChatQueryResponse {
+  answer: string;
+  metrics_used: string[];
+  confidence: number;
+}
+
+export async function chatQuery(
+  question: string,
+  game: string = "valorant",
+): Promise<ChatQueryResponse> {
+  const res = await fetch(
+    `${API_BASE}/chat/query?game=${encodeURIComponent(game)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question.trim() }),
+    },
+  );
+  if (!res.ok) throw new Error(`Chat request failed (${res.status})`);
+  return res.json();
+}
+

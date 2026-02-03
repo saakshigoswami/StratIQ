@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd coach-s-eye-main/coach-s-eye-main && npm run build",
+  "outputDirectory": "coach-s-eye-main/coach-s-eye-main/dist",
+  "installCommand": "cd coach-s-eye-main/coach-s-eye-main && npm install",
+  "framework": null
+}

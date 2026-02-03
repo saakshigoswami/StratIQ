@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MessageSquare } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
 import FilterSidebar from "@/components/layout/FilterSidebar";
 import PerformanceChart from "@/components/dashboard/PerformanceChart";
@@ -7,6 +8,8 @@ import CoachingInsights from "@/components/dashboard/CoachingInsights";
 import KeyObservations from "@/components/dashboard/KeyObservations";
 import OverviewDashboard from "@/components/dashboard/OverviewDashboard";
 import AnalysisDashboard from "@/components/dashboard/AnalysisDashboard";
+import CoachAssistant from "@/components/dashboard/CoachAssistant";
+import { Button } from "@/components/ui/button";
 
 type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis";
 
@@ -14,6 +17,7 @@ const Index = () => {
   const [game, setGame] = useState<"valorant" | "lol">("valorant");
   const [playerId, setPlayerId] = useState<string | undefined>(undefined);
   const [screen, setScreen] = useState<ScreenId>("overview");
+  const [chatOpen, setChatOpen] = useState(true);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,6 +81,23 @@ const Index = () => {
           </div>
         </main>
       </div>
+
+      {/* Coach Assistant chatbot: floating button + panel */}
+      {!chatOpen && (
+        <Button
+          size="icon"
+          className="fixed bottom-6 right-6 z-40 h-12 w-12 rounded-full shadow-lg bg-primary text-primary-foreground hover:opacity-90"
+          onClick={() => setChatOpen(true)}
+          aria-label="Open Coach Assistant"
+        >
+          <MessageSquare className="w-5 h-5" />
+        </Button>
+      )}
+      <CoachAssistant
+        game={game}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </div>
   );
 };

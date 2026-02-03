@@ -48,9 +48,10 @@ const FilterSidebar = ({
     { value: "gen-g", label: "Gen.G" },
   ];
 
-  const { data: players, isLoading } = useQuery<PlayerDto[]>({
+  const { data: players, isLoading, isError, error } = useQuery<PlayerDto[]>({
     queryKey: ["players", game],
     queryFn: () => fetchPlayers(game),
+    retry: false,
   });
 
   // Keep local selection in sync when parent changes (e.g. when game changes).
@@ -162,16 +163,21 @@ const FilterSidebar = ({
             <User className="w-3.5 h-3.5" />
             Select Player
           </label>
+          {isError && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1.5">
+              Backend not connected. Set VITE_API_BASE_URL in production or run the API locally.
+            </p>
+          )}
           <Select
             value={localPlayer}
-            disabled={isLoading || !players || players.length === 0}
+            disabled={isLoading || isError || !players || players.length === 0}
             onValueChange={(value) => {
               setLocalPlayer(value);
               onPlayerChange(value);
             }}
           >
             <SelectTrigger className="w-full bg-secondary border-border hover:border-primary/50 transition-colors">
-              <SelectValue placeholder={isLoading ? "Loading players..." : "Choose a player"}>
+              <SelectValue placeholder={isLoading ? "Loading players..." : isError ? "Backend not connected" : "Choose a player"}>
                 {localPlayer && (
                   <span className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
