@@ -15,6 +15,16 @@ export interface AnalysisResponse {
     baseline: { kast?: number; damage_dealt?: number };
     recent: { kast?: number; damage_dealt?: number };
   };
+  phase_stats?: {
+    game_phase: string;
+    kills?: number;
+    deaths?: number;
+    assists?: number;
+    damage_dealt?: number;
+    kast?: number;
+    rounds_played?: number;
+    rounds_won?: number;
+  }[];
   phase_series: {
     phase: string;
     baseline_damage: number | null;

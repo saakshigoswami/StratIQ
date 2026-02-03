@@ -8,6 +8,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.data.loader import load_match_stats, get_players
 from app.features.extraction import baseline_vs_recent, phase_stats, rolling_averages
@@ -21,6 +22,20 @@ app = FastAPI(
     title="Assistant Coach API",
     description="Comprehensive Assistant Coach MVP — baseline vs recent analysis and coaching recommendations.",
     version="1.0.0",
+)
+
+# Allow frontend (Vite dev server) to call the API during development.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Load match data once at startup (demo datasets)

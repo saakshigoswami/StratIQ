@@ -1,47 +1,24 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAnalysis, type AnalysisResponse } from "@/lib/api";
-
-interface PhaseData {
-  phase: string;
-  label: string;
-  trend: "up" | "down" | "neutral";
-  change: number;
-  description: string;
-  metrics: {
-    label: string;
-    value: string;
-  }[];
-}
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface PhaseBreakdownProps {
   game: "valorant" | "lol";
   playerId?: string;
 }
 
-const getTrendIcon = (trend: "up" | "down" | "neutral") => {
-  switch (trend) {
-    case "up":
-      return <TrendingUp className="w-5 h-5" />;
-    case "down":
-      return <TrendingDown className="w-5 h-5" />;
-    default:
-      return <Minus className="w-5 h-5" />;
-  }
-};
+type PhaseKey = "early" | "mid" | "late";
 
-const getTrendColor = (trend: "up" | "down" | "neutral") => {
-  switch (trend) {
-    case "up":
-      return "text-success bg-success/10 border-success/20";
-    case "down":
-      return "text-destructive bg-destructive/10 border-destructive/20";
-    default:
-      return "text-muted-foreground bg-muted/50 border-border";
-  }
+const PHASE_LABELS: Record<PhaseKey, string> = {
+  early: "Early",
+  mid: "Mid",
+  late: "Late",
 };
 
 const PhaseBreakdown = ({ game, playerId }: PhaseBreakdownProps) => {
+  const [activePhase, setActivePhase] = useState<PhaseKey>("early");
+
   const { data, isLoading, error } = useQuery<AnalysisResponse>({
     queryKey: ["analysis", game, playerId],
     queryFn: () => {
@@ -51,65 +28,89 @@ const PhaseBreakdown = ({ game, playerId }: PhaseBreakdownProps) => {
     enabled: !!playerId,
   });
 
-  const phases: PhaseData[] = ["early", "mid", "late"].map((phase) => {
-    const phaseRow = data?.phase_series.find((p) => p.phase === phase);
-    const baselineKast = (phaseRow?.baseline_kast ?? 0) * 100;
-    const recentKast = (phaseRow?.recent_kast ?? 0) * 100;
-    const change = baselineKast
-      ? ((recentKast - baselineKast) / baselineKast) * 100
-      : 0;
-    let trend: "up" | "down" | "neutral" = "neutral";
-    if (change > 5) trend = "up";
-    else if (change < -5) trend = "down";
+  const metrics = useMemo(() => {
+    if (!data) return null;
+    const phaseRow = data.phase_stats.find((p) => p.game_phase === activePhase);
+    if (!phaseRow) return null;
 
-    const prettyLabel =
-      phase === "early" ? "Early Game" : phase === "mid" ? "Mid Game" : "Late Game";
-
-    const description =
-      trend === "up"
-        ? "Above-baseline impact in this phase"
-        : trend === "down"
-        ? "Performance below baseline in this phase"
-        : "In line with historical baseline";
+    const kills = Number(phaseRow.kills ?? 0);
+    const deaths = Number(phaseRow.deaths ?? 0);
+    const damage = Number(phaseRow.damage_dealt ?? 0);
+    const kastPct = Number(phaseRow.kast ?? 0) * 100;
 
     return {
-      phase,
-      label: prettyLabel,
-      trend,
-      change: Number.isFinite(change) ? Math.round(change) : 0,
-      description,
-      metrics: [
-        {
-          label: "Baseline KAST",
-          value: baselineKast ? `${baselineKast.toFixed(1)}%` : "—",
-        },
-        {
-          label: "Recent KAST",
-          value: recentKast ? `${recentKast.toFixed(1)}%` : "—",
-        },
-        {
-          label: "Damage (recent)",
-          value: phaseRow?.recent_damage
-            ? Math.round(phaseRow.recent_damage).toString()
-            : "—",
-        },
+      chartData: [
+        { metric: "Kills", value: kills },
+        { metric: "Deaths", value: deaths },
+        { metric: "Damage", value: Math.round(damage) },
+        { metric: "KAST", value: Number.isFinite(kastPct) ? Number(kastPct.toFixed(1)) : 0 },
       ],
+      kills,
+      deaths,
+      damage,
+      kastPct,
     };
-  });
+  }, [data, activePhase]);
+
+  const insightText = useMemo(() => {
+    if (!metrics) return "Not enough data for this phase yet.";
+    const { kills, deaths, damage, kastPct } = metrics;
+
+    const parts: string[] = [];
+
+    if (damage < 500) {
+      parts.push("Damage output is muted in this phase.");
+    } else if (damage > 800) {
+      parts.push("Damage output is a strong win condition in this phase.");
+    }
+
+    if (kastPct < 65) {
+      parts.push("KAST drops below a healthy threshold — trades and survivability need attention.");
+    } else if (kastPct > 75) {
+      parts.push("KAST is excellent; this phase shows reliable contribution and trading.");
+    }
+
+    if (deaths > kills) {
+      parts.push("Deaths outpace kills, suggesting over‑aggression or poor reset timing.");
+    }
+
+    if (!parts.length) {
+      parts.push("Phase performance is close to baseline; focus on opponent‑specific prep.");
+    }
+
+    return parts.join(" ");
+  }, [metrics]);
+
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">
-          Phase-Based Breakdown
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Performance analysis by game phase
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Phase Breakdown</h3>
+          <p className="text-sm text-muted-foreground">
+            Compare kills, deaths, damage, and KAST across early, mid, and late game.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-1 rounded-full bg-secondary/60 p-1">
+          {(["early", "mid", "late"] as PhaseKey[]).map((phase) => (
+            <button
+              key={phase}
+              type="button"
+              onClick={() => setActivePhase(phase)}
+              className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                activePhase === phase
+                  ? "bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(56,189,248,0.6)]"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {PHASE_LABELS[phase]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {!playerId && (
         <p className="text-sm text-muted-foreground">
-          Select a player to see how their impact changes across early, mid, and late game.
+          Select a player in the left panel, then choose a phase to inspect their profile.
         </p>
       )}
       {playerId && isLoading && (
@@ -121,69 +122,78 @@ const PhaseBreakdown = ({ game, playerId }: PhaseBreakdownProps) => {
         </p>
       )}
 
-      {playerId && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {phases.map((phase) => (
-          <div
-            key={phase.phase}
-            className="phase-card rounded-xl p-5 border border-border hover:border-primary/30 transition-all"
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
+      {playerId && !isLoading && metrics && (
+        <>
+          {/* Chart */}
+          <div className="rounded-2xl bg-[#020617]/80 border border-border/60 shadow-[0_24px_60px_rgba(15,23,42,0.9)] p-5">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h4 className="font-semibold text-foreground">{phase.label}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {phase.description}
+                <p className="text-xs font-semibold tracking-[0.18em] uppercase text-slate-300/90">
+                  {PHASE_LABELS[activePhase]} Phase Metrics
+                </p>
+                <p className="text-xs text-slate-400">
+                  Gamified comparison of core combat stats for this phase.
                 </p>
               </div>
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${getTrendColor(
-                  phase.trend
-                )}`}
-              >
-                {getTrendIcon(phase.trend)}
-                <span className="text-sm font-medium">
-                  {phase.change > 0 ? "+" : ""}
-                  {phase.change}%
-                </span>
-              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/70 text-slate-300">
+                Values are normalized per phase
+              </span>
             </div>
-
-            {/* Metrics */}
-            <div className="space-y-3">
-              {phase.metrics.map((metric, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
-                >
-                  <span className="text-xs text-muted-foreground">
-                    {metric.label}
-                  </span>
-                  <span className="text-sm font-medium text-foreground">
-                    {metric.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Visual indicator bar */}
-            <div className="mt-4 h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  phase.trend === "up"
-                    ? "bg-success"
-                    : phase.trend === "down"
-                    ? "bg-destructive"
-                    : "bg-muted-foreground"
-                }`}
-                style={{
-                  width: `${Math.min(100, Math.abs(phase.change) * 3 + 40)}%`,
-                }}
-              />
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.chartData} barCategoryGap="25%">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.22)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="metric"
+                    tick={{ fill: "rgba(148,163,184,0.9)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "rgba(148,163,184,0.9)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(15,23,42,0.85)" }}
+                    contentStyle={{
+                      background: "rgba(15,23,42,0.95)",
+                      borderRadius: 12,
+                      border: "1px solid rgba(148,163,184,0.4)",
+                      padding: "8px 10px",
+                    }}
+                    labelStyle={{ color: "#e5e7eb", fontSize: 11 }}
+                    itemStyle={{ color: "#e5e7eb", fontSize: 11 }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    radius={[12, 12, 4, 4]}
+                    fill="url(#phaseMetricGradient)"
+                  />
+                  <defs>
+                    <linearGradient id="phaseMetricGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="50%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#22c55e" />
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        ))}
-        </div>
+
+          {/* Insight text */}
+          <div className="rounded-2xl bg-gradient-to-r from-sky-500/10 via-violet-500/10 to-emerald-500/10 border border-sky-500/30 px-5 py-4">
+            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-sky-100/85 mb-1">
+              Phase Insight
+            </p>
+            <p className="text-sm text-slate-100 leading-relaxed">{insightText}</p>
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,6 +1,8 @@
 import { Lightbulb, AlertTriangle, Target, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecommendations } from "@/lib/api";
+import { getPlayerImageUrl } from "@/lib/playerImages";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type InsightType = "warning" | "recommendation" | "opportunity";
 
@@ -110,13 +112,21 @@ const CoachingInsights = ({ game, playerId }: CoachingInsightsProps) => {
         <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center glow-primary">
           <Lightbulb className="w-5 h-5 text-primary-foreground" />
         </div>
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">
-            Coaching Recommendations
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            AI-powered insights for performance improvement
-          </p>
+        <div className="flex-1 flex items-center gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">
+              Coaching Recommendations
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              AI-powered insights for performance improvement
+            </p>
+          </div>
+          {playerId && (
+            <Avatar className="h-10 w-10 border-2 border-primary/30">
+              <AvatarImage src={getPlayerImageUrl(playerId)} alt={playerId} />
+              <AvatarFallback className="text-sm">{playerId.slice(0, 2)}</AvatarFallback>
+            </Avatar>
+          )}
         </div>
       </div>
 
