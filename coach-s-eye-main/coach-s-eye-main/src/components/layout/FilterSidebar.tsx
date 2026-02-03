@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchPlayers, type PlayerDto } from "@/lib/api";
+import { fetchPlayersWithFallback, type PlayerDto } from "@/lib/api";
 import { getPlayerImageUrl } from "@/lib/playerImages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -48,19 +48,20 @@ const FilterSidebar = ({
     { value: "gen-g", label: "Gen.G" },
   ];
 
-  const { data: players, isLoading, isError, error } = useQuery<PlayerDto[]>({
+  const { data: playersData, isLoading } = useQuery({
     queryKey: ["players", game],
-    queryFn: () => fetchPlayers(game),
+    queryFn: () => fetchPlayersWithFallback(game),
     retry: false,
   });
+  const players = playersData?.players ?? [];
+  const fromFallback = playersData?.fromFallback ?? false;
 
   // Keep local selection in sync when parent changes (e.g. when game changes).
   useEffect(() => {
-    if (!players || players.length === 0) {
+    if (!players.length) {
       setLocalPlayer("");
       return;
     }
-    // If parent has a player, reflect it; otherwise default to first.
     if (playerId) {
       setLocalPlayer(playerId);
     } else {
@@ -163,21 +164,21 @@ const FilterSidebar = ({
             <User className="w-3.5 h-3.5" />
             Select Player
           </label>
-          {isError && (
+          {fromFallback && (
             <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1.5">
-              Backend not connected. Set VITE_API_BASE_URL in production or run the API locally.
+              Using demo players. Connect backend (VITE_API_BASE_URL) for live data.
             </p>
           )}
           <Select
             value={localPlayer}
-            disabled={isLoading || isError || !players || players.length === 0}
+            disabled={isLoading || !players.length}
             onValueChange={(value) => {
               setLocalPlayer(value);
               onPlayerChange(value);
             }}
           >
             <SelectTrigger className="w-full bg-secondary border-border hover:border-primary/50 transition-colors">
-              <SelectValue placeholder={isLoading ? "Loading players..." : isError ? "Backend not connected" : "Choose a player"}>
+              <SelectValue placeholder={isLoading ? "Loading players..." : "Choose a player"}>
                 {localPlayer && (
                   <span className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">

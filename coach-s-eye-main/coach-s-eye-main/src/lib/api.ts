@@ -61,10 +61,45 @@ export interface RecommendationsResponse {
   recommendations: { data: string; insight: string }[];
 }
 
+/** Demo players when API is unreachable (e.g. Vercel without backend). Matches CSV data. */
+export const DEMO_PLAYERS: Record<string, PlayerDto[]> = {
+  valorant: [
+    { id: "oxy", name: "oxy" },
+    { id: "leaf", name: "leaf" },
+    { id: "jake", name: "jake" },
+    { id: "vanity", name: "vanity" },
+    { id: "zombs", name: "zombs" },
+  ],
+  lol: [
+    { id: "fudge", name: "fudge" },
+    { id: "blaber", name: "blaber" },
+    { id: "jojo", name: "jojo" },
+    { id: "berserker", name: "berserker" },
+    { id: "vulcan", name: "vulcan" },
+  ],
+};
+
 export async function fetchPlayers(game: string): Promise<PlayerDto[]> {
   const res = await fetch(`${API_BASE}/players?game=${encodeURIComponent(game)}`);
   if (!res.ok) throw new Error(`Failed to load players (${res.status})`);
   return res.json();
+}
+
+export interface PlayersWithFallback {
+  players: PlayerDto[];
+  fromFallback: boolean;
+}
+
+/** Fetch players from API; on failure (e.g. Vercel without backend) return demo list so dropdown and images work. */
+export async function fetchPlayersWithFallback(game: string): Promise<PlayersWithFallback> {
+  try {
+    const players = await fetchPlayers(game);
+    return { players, fromFallback: false };
+  } catch {
+    const key = game.toLowerCase() === "lol" ? "lol" : "valorant";
+    const players = DEMO_PLAYERS[key] ?? DEMO_PLAYERS.valorant;
+    return { players, fromFallback: true };
+  }
 }
 
 export async function fetchAnalysis(
