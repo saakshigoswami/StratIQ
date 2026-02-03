@@ -1,0 +1,11 @@
+# Cloud9 × JetBrains Assistant Coach MVP
+# Python 3.10+
+
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+pandas==2.2.0
+numpy==1.26.3
+scikit-learn==1.4.0
+python-multipart==0.0.9
+httpx==0.27.0
+python-dotenv==1.0.1

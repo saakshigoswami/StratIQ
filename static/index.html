@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistant Coach — Cloud9 × JetBrains</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-dim: #388bfd;
+      --success: #3fb950;
+      --warn: #d29922;
+      --danger: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+    }
+    .player-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .player-select-wrap label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    select:hover, select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      overflow: hidden;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+    }
+    .insights-panel {
+      grid-column: 1 / -1;
+    }
+    .insights-panel .card {
+      min-height: 200px;
+    }
+    .insight-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .insight-item:last-child { border-bottom: none; }
+    .insight-item .data {
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      margin-bottom: 0.35rem;
+    }
+    .insight-item .advice {
+      color: var(--text);
+    }
+    .loading, .empty {
+      color: var(--muted);
+      padding: 1rem 0;
+      text-align: center;
+    }
+    .error {
+      color: var(--danger);
+      padding: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="logo">Assistant Coach</span> — Cloud9 × JetBrains</h1>
+      <div class="player-select-wrap">
+        <label for="game">Game</label>
+        <select id="game" aria-label="Select game">
+          <option value="valorant">VALORANT</option>
+          <option value="lol">League of Legends</option>
+        </select>
+        <label for="player">Player</label>
+        <select id="player" aria-label="Select player">
+          <option value="">Loading…</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Damage by phase — Baseline vs recent</h2>
+        <div class="chart-wrap">
+          <canvas id="chartDamage" aria-label="Damage by phase"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>KAST by phase — Baseline vs recent</h2>
+        <div class="chart-wrap">
+          <canvas id="chartKast" aria-label="KAST by phase"></canvas>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <div class="card">
+          <h2>Coaching insights</h2>
+          <div id="insights">
+            <p class="empty">Select a player to see coaching recommendations.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <div class="card">
+        <h2>Macro review agenda (by match)</h2>
+        <div class="player-select-wrap" style="justify-content:flex-start; margin-bottom: 1rem;">
+          <label for="match">Match</label>
+          <select id="match" aria-label="Select match">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div id="macro">
+          <p class="empty">Select a match to generate a macro review agenda.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+    const gameSelect = document.getElementById('game');
+    const playerSelect = document.getElementById('player');
+    const matchSelect = document.getElementById('match');
+    const chartDamageEl = document.getElementById('chartDamage');
+    const chartKastEl = document.getElementById('chartKast');
+    const insightsEl = document.getElementById('insights');
+    const macroEl = document.getElementById('macro');
+
+    let chartDamage = null;
+    let chartKast = null;
+
+    async function fetchJson(path) {
+      const r = await fetch(API_BASE + path);
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+
+    async function loadPlayers() {
+      const game = gameSelect.value;
+      const list = await fetchJson('/players?game=' + encodeURIComponent(game));
+      playerSelect.innerHTML = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (list.length) {
+        playerSelect.value = list[0].id;
+        await loadAnalysis(list[0].id);
+      }
+    }
+
+    async function loadMatches() {
+      const game = gameSelect.value;
+      const list = await fetchJson('/matches?game=' + encodeURIComponent(game));
+      matchSelect.innerHTML = list.map(m => `<option value="${m.id}">${m.id}</option>`).join('');
+      if (list.length) {
+        matchSelect.value = list[0].id;
+        await loadMacro(list[0].id);
+      }
+    }
+
+    function renderCharts(phaseSeries) {
+      const phases = phaseSeries.map(s => s.phase);
+      const baselineDamage = phaseSeries.map(s => s.baseline_damage ?? 0);
+      const recentDamage = phaseSeries.map(s => s.recent_damage ?? 0);
+      const baselineKast = phaseSeries.map(s => (s.baseline_kast ?? 0) * 100);
+      const recentKast = phaseSeries.map(s => (s.recent_kast ?? 0) * 100);
+
+      const barOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#e6edf3' } } },
+        scales: {
+          x: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } },
+          y: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+        }
+      };
+
+      if (chartDamage) chartDamage.destroy();
+      chartDamage = new Chart(chartDamageEl, {
+        type: 'bar',
+        data: {
+          labels: phases,
+          datasets: [
+            { label: 'Baseline', data: baselineDamage, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff', borderWidth: 1 },
+            { label: 'Recent', data: recentDamage, backgroundColor: 'rgba(63, 185, 80, 0.6)', borderColor: '#3fb950', borderWidth: 1 }
+          ]
+        },
+        options: barOpts
+      });
+
+      if (chartKast) chartKast.destroy();
+      chartKast = new Chart(chartKastEl, {
+        type: 'bar',
+        data: {
+          labels: phases,
+          datasets: [
+            { label: 'Baseline %', data: baselineKast, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff', borderWidth: 1 },
+            { label: 'Recent %', data: recentKast, backgroundColor: 'rgba(63, 185, 80, 0.6)', borderColor: '#3fb950', borderWidth: 1 }
+          ]
+        },
+        options: { ...barOpts, scales: { ...barOpts.scales, y: { ...barOpts.scales.y, max: 100 } } }
+      });
+    }
+
+    function renderInsights(recs) {
+      if (!recs || !recs.length) {
+        insightsEl.innerHTML = '<p class="empty">No recommendations for this player.</p>';
+        return;
+      }
+      insightsEl.innerHTML = recs.map(r =>
+        `<div class="insight-item">
+          <div class="data">${escapeHtml(r.data)}</div>
+          <div class="advice">${escapeHtml(r.insight)}</div>
+        </div>`
+      ).join('');
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    async function loadAnalysis(playerId) {
+      insightsEl.innerHTML = '<p class="loading">Loading…</p>';
+      try {
+        const game = gameSelect.value;
+        const [analysis, recs] = await Promise.all([
+          fetchJson('/analysis/' + encodeURIComponent(playerId) + '?game=' + encodeURIComponent(game)),
+          fetchJson('/recommendations/' + encodeURIComponent(playerId) + '?game=' + encodeURIComponent(game))
+        ]);
+        const phaseSeries = analysis.phase_series || [];
+        if (phaseSeries.length) renderCharts(phaseSeries);
+        renderInsights(recs.recommendations || []);
+      } catch (e) {
+        insightsEl.innerHTML = `<p class="error">Failed to load: ${e.message}</p>`;
+      }
+    }
+
+    function renderMacroAgenda(items) {
+      if (!items || !items.length) {
+        macroEl.innerHTML = '<p class="empty">No agenda items for this match.</p>';
+        return;
+      }
+      macroEl.innerHTML = items.map(i =>
+        `<div class="insight-item">
+          <div class="data">${escapeHtml(i.title)} — ${escapeHtml(i.data)}</div>
+          <div class="advice">${escapeHtml(i.insight)}</div>
+        </div>`
+      ).join('');
+    }
+
+    async function loadMacro(matchId) {
+      macroEl.innerHTML = '<p class="loading">Loading…</p>';
+      try {
+        const game = gameSelect.value;
+        const review = await fetchJson('/macro_review/' + encodeURIComponent(matchId) + '?game=' + encodeURIComponent(game));
+        renderMacroAgenda(review.agenda || []);
+      } catch (e) {
+        macroEl.innerHTML = `<p class="error">Failed to load macro review: ${e.message}</p>`;
+      }
+    }
+
+    playerSelect.addEventListener('change', () => {
+      const id = playerSelect.value;
+      if (id) loadAnalysis(id);
+    });
+
+    matchSelect.addEventListener('change', () => {
+      const id = matchSelect.value;
+      if (id) loadMacro(id);
+    });
+
+    gameSelect.addEventListener('change', async () => {
+      insightsEl.innerHTML = '<p class="loading">Loading…</p>';
+      macroEl.innerHTML = '<p class="loading">Loading…</p>';
+      await loadPlayers();
+      await loadMatches();
+    });
+
+    Promise.all([loadPlayers(), loadMatches()]).catch(e => {
+      playerSelect.innerHTML = '<option value="">Error loading players</option>';
+      insightsEl.innerHTML = `<p class="error">API error: ${e.message}. Is the server running?</p>`;
+    });
+  </script>
+</body>
+</html>

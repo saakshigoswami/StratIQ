@@ -1,0 +1,18 @@
+## Python
+.venv/
+__pycache__/
+*.py[cod]
+
+## Node / frontend
+coach-s-eye-main/coach-s-eye-main/node_modules/
+coach-s-eye-main/coach-s-eye-main/dist/
+
+## OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+## Env
+.env
+
