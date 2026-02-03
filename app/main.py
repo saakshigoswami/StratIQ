@@ -2,6 +2,7 @@
 Assistant Coach API — Cloud9 × JetBrains Hackathon MVP.
 FastAPI backend: players, analysis, recommendations.
 """
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -25,15 +26,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Allow frontend (Vite dev server) to call the API during development.
+# CORS: allow Vite dev server and production frontend (e.g. Vercel).
+_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+if os.getenv("ALLOWED_ORIGINS"):
+    _origins.extend(o.strip() for o in os.getenv("ALLOWED_ORIGINS").split(",") if o.strip())
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ],
+    allow_origins=_origins,
+    allow_origin_regex=r"https?://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

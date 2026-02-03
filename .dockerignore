@@ -1,0 +1,24 @@
+# Frontend (not needed for backend image)
+coach-s-eye-main/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Git / OS / editor
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env and docs (optional; uncomment if you want them in image)
+.env
+*.md
+docs/
+static/
+vercel.json
+render.yaml

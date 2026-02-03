@@ -84,7 +84,7 @@ The **Python backend** (pandas, numpy, scikit-learn) exceeds Vercel’s 250 MB s
 1. In the **Vercel** project: **Settings → General → Root Directory** → set to **`coach-s-eye-main/coach-s-eye-main`** (the React/Vite app).
 2. Save and **redeploy**. Alternatively, leave Root Directory blank: the repo root has a `vercel.json` that builds the React app from the subfolder, so you get the **new** dashboard (Overview, Analysis, Coach Assistant), not the old HTML one.
 
-The frontend will call the API from `VITE_API_BASE_URL` (or `http://localhost:8000` if unset). To have live data in production, deploy the FastAPI backend elsewhere (e.g. Railway, Render, Fly.io) and set **VITE_API_BASE_URL** in Vercel’s Environment Variables to that API URL.
+The frontend will call the API from `VITE_API_BASE_URL` (or `http://localhost:8000` if unset). To have live data in production, deploy the FastAPI backend elsewhere (Railway or Render — see **docs/DEPLOY_BACKEND.md**) and set **VITE_API_BASE_URL** in Vercel’s Environment Variables to that API URL.
 
 ---
 
