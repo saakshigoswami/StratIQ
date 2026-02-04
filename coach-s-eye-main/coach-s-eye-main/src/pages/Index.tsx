@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import TopNav from "@/components/layout/TopNav";
 import chatbotImg from "@/asset/players/chatbot.png";
@@ -13,6 +13,7 @@ import TopPerformers from "@/components/dashboard/TopPerformers";
 import CoachAssistant from "@/components/dashboard/CoachAssistant";
 import { Button } from "@/components/ui/button";
 import { fetchAnalysis, type AnalysisResponse } from "@/lib/api";
+import IntroSplash from "@/components/layout/IntroSplash";
 
 type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis" | "top";
 
@@ -20,7 +21,8 @@ const Index = () => {
   const [game, setGame] = useState<"valorant" | "lol">("valorant");
   const [playerId, setPlayerId] = useState<string | undefined>(undefined);
   const [screen, setScreen] = useState<ScreenId>("overview");
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   // Lightweight analysis snapshot for Overview screen (phase performance + priority highlight)
   const { data: overviewAnalysis } = useQuery<AnalysisResponse>({
@@ -84,8 +86,16 @@ const Index = () => {
     }
   }
 
+  // Open chatbot automatically once the intro splash has finished.
+  useEffect(() => {
+    if (!showIntro) {
+      setChatOpen(true);
+    }
+  }, [showIntro]);
+
   return (
     <div className="min-h-screen bg-background">
+      {showIntro && <IntroSplash onFinish={() => setShowIntro(false)} />}
       {/* Top Navigation */}
       <TopNav />
 
@@ -158,8 +168,8 @@ const Index = () => {
         </main>
       </div>
 
-      {/* Coach Assistant chatbot: floating button + panel */}
-      {!chatOpen && (
+      {/* Coach Assistant chatbot: floating button + panel (only after intro) */}
+      {!showIntro && !chatOpen && (
         <Button
           className="fixed bottom-6 right-6 z-40 h-12 pl-3 pr-4 rounded-full shadow-lg bg-primary text-primary-foreground hover:opacity-90 flex items-center gap-2"
           onClick={() => setChatOpen(true)}
@@ -174,11 +184,13 @@ const Index = () => {
           <span className="text-sm font-medium whitespace-nowrap">hey ask me</span>
         </Button>
       )}
-      <CoachAssistant
-        game={game}
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-      />
+      {!showIntro && (
+        <CoachAssistant
+          game={game}
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </div>
   );
 };

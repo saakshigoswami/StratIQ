@@ -213,4 +213,19 @@
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  /* Intro ring animation for splash screen */
+  .intro-ring-progress {
+    stroke-dasharray: 0 314;
+    animation: introRingFill 2.4s ease-out forwards;
+  }
+
+  @keyframes introRingFill {
+    from {
+      stroke-dasharray: 0 314;
+    }
+    to {
+      stroke-dasharray: 314 314;
+    }
+  }
 }
