@@ -77,6 +77,12 @@ const AnalysisDashboard = ({ game, playerId }: AnalysisDashboardProps) => {
   const recent = analysis.baseline_vs_recent?.recent ?? {};
   const baselineKast = (baseline.kast ?? 0) * 100;
   const recentKast = (recent.kast ?? 0) * 100;
+  // Circular KAST ring (match overview style)
+  const circleRadius = 42;
+  const circumference = 2 * Math.PI * circleRadius;
+  const safeKast = Math.min(100, Math.max(0, recentKast));
+  const strokeDash = (safeKast / 100) * circumference;
+  const strokeGap = circumference - strokeDash;
   const baselineDamage = Math.round(baseline.damage_dealt ?? 0);
   const recentDamage = Math.round(recent.damage_dealt ?? 0);
   const phaseChartData = (analysis.phase_series ?? []).map((p) => ({
@@ -138,28 +144,37 @@ const AnalysisDashboard = ({ game, playerId }: AnalysisDashboardProps) => {
             ))}
           </div>
 
-          {/* Center: KAST ring */}
+          {/* Center: KAST ring — outer circle with yellow progress ring matching overview */}
           <div className="flex-shrink-0 flex items-center justify-center">
             <div className="relative w-36 h-36">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                <defs>
+                  <linearGradient id="analysisKastGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#eab308" />
+                    <stop offset="100%" stopColor="#facc15" />
+                  </linearGradient>
+                </defs>
+                {/* Full grey ring */}
                 <circle
                   cx="50"
                   cy="50"
-                  r="42"
+                  r={circleRadius}
+                  fill="none"
+                  stroke="rgba(148,163,184,0.35)"
+                  strokeWidth="8"
+                />
+                {/* Progress ring in yellow, proportional to recentKast */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={circleRadius}
                   fill="none"
                   stroke="url(#analysisKastGrad)"
                   strokeWidth="8"
                   strokeLinecap="round"
-                  strokeDasharray={`${recentKast * 2.64} 264`}
+                  strokeDasharray={`${strokeDash} ${strokeGap}`}
                 />
               </svg>
-              <defs>
-                <linearGradient id="analysisKastGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="100%" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-2xl font-bold text-white">{Number(recentKast.toFixed(0))}%</span>
                 <span className="text-[10px] uppercase tracking-wider text-slate-400">Recent KAST</span>
