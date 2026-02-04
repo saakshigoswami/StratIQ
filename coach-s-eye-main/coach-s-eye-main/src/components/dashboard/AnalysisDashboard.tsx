@@ -85,6 +85,7 @@ const AnalysisDashboard = ({ game, playerId }: AnalysisDashboardProps) => {
   const strokeGap = circumference - strokeDash;
   const baselineDamage = Math.round(baseline.damage_dealt ?? 0);
   const recentDamage = Math.round(recent.damage_dealt ?? 0);
+  const kastDelta = recentKast - baselineKast;
   const phaseChartData = (analysis.phase_series ?? []).map((p) => ({
     phase: p.phase.charAt(0).toUpperCase() + p.phase.slice(1),
     baseline: p.baseline_damage != null ? Math.round(Number(p.baseline_damage)) : 0,
@@ -110,7 +111,7 @@ const AnalysisDashboard = ({ game, playerId }: AnalysisDashboardProps) => {
         </div>
       </div>
 
-      {/* Hero card: stats left, circular center, big image right */}
+      {/* Hero card: stats left, circular center, big image right with motion */}
       <div className="rounded-2xl bg-[#0f0a1a]/90 border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.7)] p-6 mb-6 overflow-hidden">
         <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-slate-400 mb-5">
           Stats Overview
@@ -182,15 +183,22 @@ const AnalysisDashboard = ({ game, playerId }: AnalysisDashboardProps) => {
             </div>
           </div>
 
-          {/* Right: big player image */}
+          {/* Right: big player image with subtle glow + streak badge */}
           <div className="flex-shrink-0 flex flex-col items-center justify-end lg:min-w-[280px]">
-            <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_60px_rgba(88,80,236,0.35)]">
+            <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_40px_rgba(88,80,236,0.25)] animate-soft-glow transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.02]">
               <img
                 src={getPlayerImageUrl(playerId) ?? ""}
                 alt={playerId}
                 className="w-full h-full object-cover object-top"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a1a] via-transparent to-transparent pointer-events-none" />
+              <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-black/60 border border-emerald-400/50 text-[10px] uppercase tracking-wider text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.65)]">
+                {kastDelta >= 5
+                  ? `Hot streak +${kastDelta.toFixed(1)}% KAST`
+                  : kastDelta >= 0
+                    ? "Holding form"
+                    : `Review -${Math.abs(kastDelta).toFixed(1)}% KAST`}
+              </div>
             </div>
             <p className="text-sm font-semibold text-slate-200 mt-3">{playerName}</p>
             <p className="text-[10px] text-slate-500 uppercase tracking-wider">Analyzed Player</p>

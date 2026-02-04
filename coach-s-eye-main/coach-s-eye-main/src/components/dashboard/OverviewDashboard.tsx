@@ -10,9 +10,9 @@ import {
 import { getPlayerImageUrl } from "@/lib/playerImages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type PhaseKey = "early" | "mid" | "late";
+export type PhaseKey = "early" | "mid" | "late";
 
-interface PhaseStat {
+export interface PhaseStat {
   phase: PhaseKey;
   label: string;
   value: number;
@@ -26,6 +26,8 @@ interface OverviewDashboardProps {
   avgKast?: number;
   phaseStats?: PhaseStat[];
   highlight?: string;
+  /** Optional callback when user clicks the bottom \"Open Full Review\" button. */
+  onOpenFullReview?: () => void;
 }
 
 const defaultPhaseStats: PhaseStat[] = [
@@ -42,6 +44,7 @@ const OverviewDashboard = ({
   avgKast = 0.72,
   phaseStats = defaultPhaseStats,
   highlight = "Mid‑game KAST dipped 18% below baseline. Focus review on rounds 9–16 and tighten trading protocols.",
+  onOpenFullReview,
 }: OverviewDashboardProps) => {
   const chartData = phaseStats.map((p) => ({ phase: p.label, value: p.value }));
   const kastPct = Math.round(avgKast * 100);
@@ -175,17 +178,25 @@ const OverviewDashboard = ({
             </div>
           </div>
 
-          {/* Right: big player image */}
+          {/* Right: big player image with subtle glow + hover motion */}
           <div className="flex-shrink-0 flex flex-col items-center justify-end lg:min-w-[280px]">
             {playerId ? (
               <>
-                <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_60px_rgba(88,80,236,0.35)]">
+                <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_40px_rgba(88,80,236,0.25)] animate-soft-glow transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.02]">
                   <img
                     src={getPlayerImageUrl(playerId) ?? ""}
                     alt={playerId}
                     className="w-full h-full object-cover object-top"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a1a] via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-3 bottom-3 flex items-center justify-between text-[10px] uppercase tracking-wider">
+                    <span className="px-2 py-1 rounded-full bg-black/60 border border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.65)]">
+                      {kastPct >= 75 ? "On Fire" : kastPct >= 55 ? "Stable Form" : "Needs Review"}
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-black/50 border border-cyan-400/40 text-cyan-200">
+                      Phase score {winRatePct}%
+                    </span>
+                  </div>
                 </div>
                 <p className="text-sm font-semibold text-slate-200 mt-3">{playerName}</p>
                 <p className="text-[10px] text-slate-500 uppercase tracking-wider">Selected Player</p>
@@ -197,6 +208,29 @@ const OverviewDashboard = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Priority insight banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent border border-amber-400/40 shadow-[0_0_45px_rgba(251,191,36,0.45)] px-6 py-4 flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-300/40 flex items-center justify-center">
+            <span className="text-amber-200 text-xl font-semibold">!</span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-amber-100/90">
+              Priority Coaching Focus
+            </p>
+            <p className="text-sm text-amber-50/95 mt-1 leading-relaxed max-w-3xl">{highlight}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenFullReview}
+          disabled={!onOpenFullReview}
+          className="hidden sm:inline-flex px-4 py-2 rounded-full bg-amber-400 text-slate-950 text-xs font-semibold tracking-wide shadow-[0_0_25px_rgba(251,191,36,0.7)] hover:brightness-110 transition disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          Open Full Review
+        </button>
       </div>
 
       {/* Phase bar chart */}
@@ -235,24 +269,6 @@ const OverviewDashboard = ({
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Priority insight banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent border border-amber-400/40 shadow-[0_0_45px_rgba(251,191,36,0.45)] px-6 py-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-300/40 flex items-center justify-center">
-            <span className="text-amber-200 text-xl font-semibold">!</span>
-          </div>
-          <div>
-            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-amber-100/90">
-              Priority Coaching Focus
-            </p>
-            <p className="text-sm text-amber-50/95 mt-1 leading-relaxed max-w-3xl">{highlight}</p>
-          </div>
-        </div>
-        <button className="hidden sm:inline-flex px-4 py-2 rounded-full bg-amber-400 text-slate-950 text-xs font-semibold tracking-wide shadow-[0_0_25px_rgba(251,191,36,0.7)] hover:brightness-110 transition">
-          Open Full Review
-        </button>
       </div>
     </div>
   );

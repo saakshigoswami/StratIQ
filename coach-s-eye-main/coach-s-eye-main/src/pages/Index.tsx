@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import TopNav from "@/components/layout/TopNav";
 import chatbotImg from "@/asset/players/chatbot.png";
 import FilterSidebar from "@/components/layout/FilterSidebar";
@@ -6,10 +7,11 @@ import PerformanceChart from "@/components/dashboard/PerformanceChart";
 import PhaseBreakdown from "@/components/dashboard/PhaseBreakdown";
 import CoachingInsights from "@/components/dashboard/CoachingInsights";
 import KeyObservations from "@/components/dashboard/KeyObservations";
-import OverviewDashboard from "@/components/dashboard/OverviewDashboard";
+import OverviewDashboard, { type PhaseStat } from "@/components/dashboard/OverviewDashboard";
 import AnalysisDashboard from "@/components/dashboard/AnalysisDashboard";
 import CoachAssistant from "@/components/dashboard/CoachAssistant";
 import { Button } from "@/components/ui/button";
+import { fetchAnalysis, type AnalysisResponse } from "@/lib/api";
 
 type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis";
 
@@ -18,6 +20,68 @@ const Index = () => {
   const [playerId, setPlayerId] = useState<string | undefined>(undefined);
   const [screen, setScreen] = useState<ScreenId>("overview");
   const [chatOpen, setChatOpen] = useState(true);
+
+  // Lightweight analysis snapshot for Overview screen (phase performance + priority highlight)
+  const { data: overviewAnalysis } = useQuery<AnalysisResponse>({
+    queryKey: ["overview-analysis", game, playerId],
+    queryFn: () => {
+      if (!playerId) {
+        throw new Error("No player selected");
+      }
+      return fetchAnalysis(game, playerId);
+    },
+    enabled: !!playerId,
+    staleTime: 60_000,
+  });
+
+  let overviewPhaseStats: PhaseStat[] | undefined;
+  let overviewHighlight: string | undefined;
+
+  if (overviewAnalysis) {
+    const phaseSeries = overviewAnalysis.phase_series ?? [];
+    const mapped: PhaseStat[] = [];
+    for (const p of phaseSeries) {
+      const phaseKey = p.phase.toLowerCase() as PhaseStat["phase"];
+      if (!["early", "mid", "late"].includes(phaseKey)) continue;
+      const label = phaseKey.charAt(0).toUpperCase() + phaseKey.slice(1);
+      const recentKastPct =
+        p.recent_kast != null ? Math.round(Number(p.recent_kast) * 100) : 0;
+      mapped.push({
+        phase: phaseKey,
+        label,
+        value: recentKastPct,
+      });
+    }
+    if (mapped.length) {
+      overviewPhaseStats = mapped;
+    }
+
+    // Priority coaching focus: pick the biggest negative deviation (phase-level if available)
+    const phaseDevs = overviewAnalysis.phase_deviations ?? [];
+    const drops = phaseDevs.filter((d) => d.direction === "drop");
+    const deviations = overviewAnalysis.deviations ?? [];
+
+    const pickWorst = <T extends { pct_change: number }>(arr: T[]): T | null => {
+      if (!arr.length) return null;
+      return arr.reduce((worst, curr) =>
+        Math.abs(curr.pct_change) > Math.abs(worst.pct_change) ? curr : worst,
+      );
+    };
+
+    const worstPhaseDrop = pickWorst(drops);
+    if (worstPhaseDrop) {
+      const phaseLabel =
+        worstPhaseDrop.phase.charAt(0).toUpperCase() + worstPhaseDrop.phase.slice(1);
+      const pct = Math.round(Math.abs(worstPhaseDrop.pct_change * 100));
+      overviewHighlight = `${phaseLabel} ${worstPhaseDrop.metric.toUpperCase()} dropped ${pct}% vs baseline. Focus coaching on ${phaseLabel.toLowerCase()} rotations, trades, and utility.`;
+    } else {
+      const worstOverall = pickWorst(deviations);
+      if (worstOverall) {
+        const pct = Math.round(Math.abs(worstOverall.pct_change * 100));
+        overviewHighlight = `${worstOverall.metric.toUpperCase()} dipped ${pct}% vs baseline. Prioritize review of recent maps where this metric struggled.`;
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,7 +108,12 @@ const Index = () => {
           <div className="max-w-7xl mx-auto space-y-6">
             {screen === "overview" && (
               <div className="animate-fade-in">
-                <OverviewDashboard playerId={playerId} />
+                <OverviewDashboard
+                  playerId={playerId}
+                  phaseStats={overviewPhaseStats}
+                  highlight={overviewHighlight}
+                  onOpenFullReview={() => setScreen("analysis")}
+                />
               </div>
             )}
 
