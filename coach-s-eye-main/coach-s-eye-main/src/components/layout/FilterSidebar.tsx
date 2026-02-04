@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Search, Users, User, Gamepad2, LayoutDashboard, Activity, Target, Lightbulb, BarChart3 } from "lucide-react";
+import { ChevronDown, Search, Users, User, Gamepad2, LayoutDashboard, Activity, Target, Lightbulb, BarChart3, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,7 +14,7 @@ import { fetchPlayersWithFallback, isApiBaseConfigured, type PlayerDto } from "@
 import { getPlayerImageUrl } from "@/lib/playerImages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis";
+type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis" | "top";
 
 interface FilterSidebarProps {
   game: "valorant" | "lol";
@@ -80,6 +80,7 @@ const FilterSidebar = ({
         {[
           { id: "overview" as ScreenId, label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
           { id: "analysis" as ScreenId, label: "Analysis", icon: <BarChart3 className="w-4 h-4" /> },
+          { id: "top" as ScreenId, label: "Top Performers", icon: <Trophy className="w-4 h-4" /> },
           { id: "phase" as ScreenId, label: "Phase Breakdown", icon: <Activity className="w-4 h-4" /> },
           { id: "player" as ScreenId, label: "Player Focus", icon: <Target className="w-4 h-4" /> },
           { id: "coach" as ScreenId, label: "Coach Insights", icon: <Lightbulb className="w-4 h-4" /> },

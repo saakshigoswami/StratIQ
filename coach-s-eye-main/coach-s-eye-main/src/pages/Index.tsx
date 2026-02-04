@@ -9,11 +9,12 @@ import CoachingInsights from "@/components/dashboard/CoachingInsights";
 import KeyObservations from "@/components/dashboard/KeyObservations";
 import OverviewDashboard, { type PhaseStat } from "@/components/dashboard/OverviewDashboard";
 import AnalysisDashboard from "@/components/dashboard/AnalysisDashboard";
+import TopPerformers from "@/components/dashboard/TopPerformers";
 import CoachAssistant from "@/components/dashboard/CoachAssistant";
 import { Button } from "@/components/ui/button";
 import { fetchAnalysis, type AnalysisResponse } from "@/lib/api";
 
-type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis";
+type ScreenId = "overview" | "phase" | "player" | "coach" | "analysis" | "top";
 
 const Index = () => {
   const [game, setGame] = useState<"valorant" | "lol">("valorant");
@@ -145,6 +146,12 @@ const Index = () => {
                 <div className="lg:col-span-2">
                   <CoachingInsights game={game} playerId={playerId} />
                 </div>
+              </div>
+            )}
+
+            {screen === "top" && (
+              <div className="animate-fade-in">
+                <TopPerformers game={game} />
               </div>
             )}
           </div>
