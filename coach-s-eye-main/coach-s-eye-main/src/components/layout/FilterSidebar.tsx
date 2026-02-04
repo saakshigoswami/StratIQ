@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchPlayersWithFallback, type PlayerDto } from "@/lib/api";
+import { fetchPlayersWithFallback, isApiBaseConfigured, type PlayerDto } from "@/lib/api";
 import { getPlayerImageUrl } from "@/lib/playerImages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -165,8 +165,17 @@ const FilterSidebar = ({
             Select Player
           </label>
           {fromFallback && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1.5">
-              Using demo players. Connect backend (VITE_API_BASE_URL) for live data.
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1.5 space-y-1">
+              <span className="block">Using demo players.</span>
+              {!isApiBaseConfigured ? (
+                <span className="block mt-0.5">
+                  Set <code className="bg-black/20 px-0.5 rounded">VITE_API_BASE_URL</code> in Vercel → Settings → Environment Variables (your Railway URL), then <strong>Redeploy</strong> (do not use “Redeploy with existing build”).
+                </span>
+              ) : (
+                <span className="block mt-0.5">
+                  Backend unreachable. Check Railway is online and the URL is correct.
+                </span>
+              )}
             </p>
           )}
           <Select

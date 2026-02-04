@@ -55,6 +55,12 @@ def get_df(game: str) -> pd.DataFrame:
     return _dfs[g]
 
 
+@app.get("/health")
+async def health():
+    """Lightweight health check for Railway / load balancers."""
+    return {"status": "ok"}
+
+
 @app.get("/")
 async def root():
     """Serve frontend."""

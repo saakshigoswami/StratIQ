@@ -3,6 +3,11 @@ import type { QueryFunction } from "@tanstack/react-query";
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000";
 
+/** True if VITE_API_BASE_URL was set at build time (so we're not falling back to localhost). */
+export const isApiBaseConfigured =
+  typeof import.meta.env.VITE_API_BASE_URL === "string" &&
+  import.meta.env.VITE_API_BASE_URL.trim() !== "";
+
 export interface PlayerDto {
   id: string;
   name: string;
